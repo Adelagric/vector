@@ -279,13 +279,6 @@ impl ValidatedSink for S3SinkConfig {
         })
     }
 
-    fn validate_with_context(&self, cx: &SinkContext) -> crate::Result<()> {
-        if let Some(timezone) = self.timezone.or(cx.globals.timezone) {
-            vector_lib::validate_timezone(timezone)?;
-        }
-        Ok(())
-    }
-
     async fn build(
         &self,
         validated: &ValidatedAwsS3,

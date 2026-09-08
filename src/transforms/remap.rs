@@ -286,24 +286,13 @@ impl TransformConfig for RemapConfig {
         &self,
         context: &TransformContext,
     ) -> std::result::Result<(), Vec<String>> {
-        let mut errors = Vec::new();
-        let timezone = self.timezone.unwrap_or_else(|| context.globals.timezone());
-        if let Err(error) = validate_timezone(timezone) {
-            errors.push(error.to_string());
-        }
-        if let Err(error) = self.compile_vrl_program(
+        self.compile_vrl_program(
             context.enrichment_tables.clone(),
             context.metrics_storage.clone(),
             context.merged_schema_definition.clone(),
-        ) {
-            errors.push(error.to_string());
-        }
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        )
+        .map(|_| ())
+        .map_err(|error| vec![error.to_string()])
     }
 
     fn input(&self) -> Input {

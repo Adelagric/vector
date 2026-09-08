@@ -102,14 +102,6 @@ impl TransformConfig for MetricToLogConfig {
         Input::metric()
     }
 
-    fn validate_with_context(
-        &self,
-        context: &TransformContext,
-    ) -> std::result::Result<(), Vec<String>> {
-        let timezone = self.timezone.unwrap_or_else(|| context.globals.timezone());
-        validate_timezone(timezone).map_err(|error| vec![error.to_string()])
-    }
-
     fn outputs(
         &self,
         context: &TransformContext,

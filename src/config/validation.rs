@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 use futures_util::{FutureExt, StreamExt, TryFutureExt, TryStreamExt, stream};
 use heim::{disk::Partition, units::information::byte};
 use indexmap::IndexMap;
-use vector_lib::{buffers::config::DiskUsage, internal_event::DEFAULT_OUTPUT, validate_timezone};
+use vector_lib::{buffers::config::DiskUsage, internal_event::DEFAULT_OUTPUT};
 
 use super::{
     ComponentKey, Config, OutputId, Resource, builder::ConfigBuilder,
@@ -196,10 +196,6 @@ pub fn check_resources(config: &ConfigBuilder) -> Result<(), Vec<String>> {
 /// Validates that `*_ewma_alpha` values are within the valid range (0 < alpha < 1).
 pub fn check_values(config: &ConfigBuilder) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
-
-    if let Err(error) = validate_timezone(config.global.timezone()) {
-        errors.push(error.to_string());
-    }
 
     if let Some(error) = validate_ewma_half_life_seconds(
         config.global.buffer_utilization_ewma_half_life_seconds,

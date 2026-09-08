@@ -187,15 +187,6 @@ impl ValidatedSink for HumioMetricsConfig {
         Ok(ValidatedHumioMetrics { hec: validated.hec })
     }
 
-    fn validate_with_context(&self, cx: &SinkContext) -> crate::Result<()> {
-        let timezone = self
-            .transform
-            .timezone
-            .unwrap_or_else(|| cx.globals.timezone());
-        vector_lib::validate_timezone(timezone)?;
-        Ok(())
-    }
-
     async fn build(
         &self,
         validated: &ValidatedHumioMetrics,

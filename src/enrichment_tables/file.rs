@@ -8,6 +8,7 @@ use vector_lib::{
     configurable::configurable_component,
     conversion::Conversion,
     enrichment::{Case, Condition, Error, IndexHandle, Table},
+    validate_timezone,
 };
 use vrl::value::{ObjectMap, Value};
 
@@ -239,10 +240,9 @@ impl EnrichmentTableConfig for FileConfig {
         globals: &crate::config::GlobalOptions,
         _prev_state: Option<Box<dyn std::any::Any + Send + Sync>>,
     ) -> crate::Result<Box<dyn Table + Send + Sync>> {
-        Ok(Box::new(File::new(
-            self.clone(),
-            self.load_file(globals.timezone())?,
-        )))
+        let timezone = globals.timezone();
+        validate_timezone(timezone)?;
+        Ok(Box::new(File::new(self.clone(), self.load_file(timezone)?)))
     }
 }
 
