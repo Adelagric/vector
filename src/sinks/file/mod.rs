@@ -290,6 +290,13 @@ impl ValidatedSink for FileSinkConfig {
         Ok(ValidatedFileSink { transformer })
     }
 
+    fn validate_with_context(&self, cx: &SinkContext) -> crate::Result<()> {
+        if let Some(timezone) = self.timezone.or(cx.globals.timezone) {
+            vector_lib::validate_timezone(timezone)?;
+        }
+        Ok(())
+    }
+
     async fn build(
         &self,
         validated: &ValidatedFileSink,
@@ -333,7 +340,8 @@ impl FileSink {
         let offset = config
             .timezone
             .or(cx.globals.timezone)
-            .and_then(timezone_to_offset);
+            .map(timezone_to_offset)
+            .transpose()?;
 
         // Config validation runs regardless of the opt-out: a relative
         // `base_dir` is a syntactic error, not a confinement decision.

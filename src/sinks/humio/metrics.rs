@@ -187,6 +187,15 @@ impl ValidatedSink for HumioMetricsConfig {
         Ok(ValidatedHumioMetrics { hec: validated.hec })
     }
 
+    fn validate_with_context(&self, cx: &SinkContext) -> crate::Result<()> {
+        let timezone = self
+            .transform
+            .timezone
+            .unwrap_or_else(|| cx.globals.timezone());
+        vector_lib::validate_timezone(timezone)?;
+        Ok(())
+    }
+
     async fn build(
         &self,
         validated: &ValidatedHumioMetrics,
@@ -194,7 +203,7 @@ impl ValidatedSink for HumioMetricsConfig {
     ) -> crate::Result<(VectorSink, Healthcheck)> {
         let transform = self
             .transform
-            .build_transform(&TransformContext::new_with_globals(cx.globals.clone()));
+            .build_transform(&TransformContext::new_with_globals(cx.globals.clone()))?;
 
         let humio_logs = self.build_humio_logs_config();
 

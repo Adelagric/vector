@@ -279,6 +279,13 @@ impl ValidatedSink for S3SinkConfig {
         })
     }
 
+    fn validate_with_context(&self, cx: &SinkContext) -> crate::Result<()> {
+        if let Some(timezone) = self.timezone.or(cx.globals.timezone) {
+            vector_lib::validate_timezone(timezone)?;
+        }
+        Ok(())
+    }
+
     async fn build(
         &self,
         validated: &ValidatedAwsS3,
@@ -311,7 +318,8 @@ impl S3SinkConfig {
         let offset = self
             .timezone
             .or(cx.globals.timezone)
-            .and_then(timezone_to_offset);
+            .map(timezone_to_offset)
+            .transpose()?;
 
         // Configure our partitioning/batching.
         let batch_settings = validated.batch_settings;

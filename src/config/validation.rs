@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 use futures_util::{FutureExt, StreamExt, TryFutureExt, TryStreamExt, stream};
 use heim::{disk::Partition, units::information::byte};
 use indexmap::IndexMap;
-use vector_lib::{TimeZone, buffers::config::DiskUsage, internal_event::DEFAULT_OUTPUT};
+use vector_lib::{buffers::config::DiskUsage, internal_event::DEFAULT_OUTPUT, validate_timezone};
 
 use super::{
     ComponentKey, Config, OutputId, Resource, builder::ConfigBuilder,
@@ -21,29 +21,6 @@ const EWMA_ALPHA_MAX: f64 = 1.0;
 /// Minimum value (exclusive) for EWMA half-life options.
 /// The half-life value must be strictly greater than this value.
 const EWMA_HALF_LIFE_SECONDS_MIN: f64 = 0.0;
-
-fn validate_timezone(timezone: TimeZone) -> Result<(), String> {
-    validate_timezone_with(timezone, || {
-        jiff::tz::TimeZone::try_system()
-            .map(|_| ())
-            .map_err(|error| error.to_string())
-    })
-}
-
-fn validate_timezone_with(
-    timezone: TimeZone,
-    validate_local: impl FnOnce() -> Result<(), String>,
-) -> Result<(), String> {
-    if !matches!(timezone, TimeZone::Local) {
-        return Ok(());
-    }
-
-    validate_local().map_err(|error| {
-        format!(
-            "Unable to load the system local time zone: {error}. Set the global `timezone` option to a valid IANA time zone."
-        )
-    })
-}
 
 /// Validates an optional EWMA alpha value and returns an error message if invalid.
 /// Returns `None` if the value is `None` or valid, otherwise returns an error message.
@@ -221,7 +198,7 @@ pub fn check_values(config: &ConfigBuilder) -> Result<(), Vec<String>> {
     let mut errors = Vec::new();
 
     if let Err(error) = validate_timezone(config.global.timezone()) {
-        errors.push(error);
+        errors.push(error.to_string());
     }
 
     if let Some(error) = validate_ewma_half_life_seconds(
@@ -486,32 +463,4 @@ fn capitalize(s: &str) -> String {
         r.make_ascii_uppercase();
     }
     s
-}
-
-#[cfg(test)]
-mod tests {
-    use chrono_tz::Tz;
-
-    use super::*;
-
-    #[test]
-    fn validates_named_timezone_without_loading_local_timezone() {
-        validate_timezone_with(TimeZone::Named(Tz::UTC), || {
-            panic!("named time zones do not need system tzdata")
-        })
-        .unwrap();
-    }
-
-    #[test]
-    fn rejects_unavailable_local_timezone() {
-        assert_eq!(
-            validate_timezone_with(TimeZone::Local, || {
-                Err("timezone data is unavailable".into())
-            }),
-            Err(
-                "Unable to load the system local time zone: timezone data is unavailable. Set the global `timezone` option to a valid IANA time zone."
-                    .into()
-            )
-        );
-    }
 }

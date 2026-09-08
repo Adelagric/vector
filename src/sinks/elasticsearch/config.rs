@@ -814,6 +814,16 @@ impl ValidatedSink for ElasticsearchConfig {
         })
     }
 
+    fn validate_with_context(&self, _cx: &SinkContext) -> crate::Result<()> {
+        let timezone = self
+            .metrics
+            .as_ref()
+            .and_then(|metrics| metrics.timezone)
+            .unwrap_or_default();
+        vector_lib::validate_timezone(timezone)?;
+        Ok(())
+    }
+
     async fn build(
         &self,
         validated: &ValidatedElasticsearch,

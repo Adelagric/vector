@@ -19,6 +19,7 @@ use vector_lib::{
     enrichment::TableRegistry,
     lookup::{PathPrefix, metadata_path, owned_value_path},
     schema::Definition,
+    validate_timezone,
 };
 use vector_vrl_functions::set_semantic_meaning::MeaningList;
 use vector_vrl_metrics::MetricsStorage;
@@ -285,13 +286,24 @@ impl TransformConfig for RemapConfig {
         &self,
         context: &TransformContext,
     ) -> std::result::Result<(), Vec<String>> {
-        self.compile_vrl_program(
+        let mut errors = Vec::new();
+        let timezone = self.timezone.unwrap_or_else(|| context.globals.timezone());
+        if let Err(error) = validate_timezone(timezone) {
+            errors.push(error.to_string());
+        }
+        if let Err(error) = self.compile_vrl_program(
             context.enrichment_tables.clone(),
             context.metrics_storage.clone(),
             context.merged_schema_definition.clone(),
-        )
-        .map(|_| ())
-        .map_err(|e| vec![e.to_string()])
+        ) {
+            errors.push(error.to_string());
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     fn input(&self) -> Input {
@@ -493,14 +505,16 @@ where
         )?;
 
         let runner = Runner::new();
+        let timezone = config
+            .timezone
+            .unwrap_or_else(|| context.globals.timezone());
+        validate_timezone(timezone)?;
 
         Ok((
             Remap {
                 component_key: context.key.clone(),
                 program,
-                timezone: config
-                    .timezone
-                    .unwrap_or_else(|| context.globals.timezone()),
+                timezone,
                 drop_on_error: config.drop_on_error,
                 drop_on_abort: config.drop_on_abort,
                 reroute_dropped: config.reroute_dropped,

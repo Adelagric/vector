@@ -129,7 +129,7 @@ impl ElasticsearchCommon {
             metric_config.timezone.unwrap_or_default(),
             LogNamespace::Legacy,
             metric_config.metric_tag_values,
-        );
+        )?;
 
         let service_type = config.opensearch_service_type;
 
