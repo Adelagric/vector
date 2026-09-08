@@ -13357,6 +13357,7 @@ dependencies = [
  "inventory",
  "ipnet",
  "itertools 0.15.0",
+ "jiff",
  "k8s-openapi",
  "kube",
  "lapin",
